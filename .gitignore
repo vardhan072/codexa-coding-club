@@ -1,0 +1,18 @@
+# Ignore frontend node packages
+frontend/node_modules/
+frontend/dist/
+
+# Ignore backend virtual environment
+backend/venv/
+backend/.venv/
+
+# Ignore local environment variables (credentials)
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Ignore Python compiled cache
+**/__pycache__/
+*.pyc
+# Ignore Firebase Credentials
+backend/firebase-credentials.json
