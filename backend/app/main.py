@@ -73,10 +73,35 @@ if settings.BACKEND_CORS_ORIGINS:
 # Include core routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-@app.get("/", tags=["Root"])
-def read_root():
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+# Resolve absolute path to frontend dist directory
+frontend_dist_path = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend", "dist")
+)
+assets_path = os.path.join(frontend_dist_path, "assets")
+
+# Serve frontend build assets static directory if it exists
+if os.path.exists(assets_path):
+    app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+# Catch-all route to serve the SPA index.html for frontend routing
+@app.get("/{catchall:path}", tags=["Frontend"])
+def serve_frontend(catchall: str):
+    # If the request matches API path but is not found in routing, return 404
+    api_prefix = settings.API_V1_STR.lstrip("/")
+    if catchall.startswith(api_prefix) or catchall.startswith("docs") or catchall.startswith("openapi.json"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    index_file = os.path.join(frontend_dist_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
     return {
         "status": "online",
         "project": settings.PROJECT_NAME,
+        "message": "Backend is running. Build the frontend (`npm run build` in frontend/) to serve the full UI.",
         "docs_url": "/docs"
     }
+

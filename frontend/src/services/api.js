@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1');
 
 const getHeaders = (isFormData = false) => {
   const headers = {};
@@ -10,18 +10,24 @@ const getHeaders = (isFormData = false) => {
 
 const handleResponse = async (response) => {
   if (!response.ok) {
-    let errorData = 'Something went wrong';
+    let errorData = response.statusText || 'Something went wrong';
     try {
-      const data = await response.json();
-      errorData = data.detail || JSON.stringify(data);
+      const text = await response.text();
+      try {
+        const data = JSON.parse(text);
+        errorData = data.detail || JSON.stringify(data);
+      } catch {
+        errorData = text || response.statusText || errorData;
+      }
     } catch {
-      errorData = (await response.text()) || response.statusText;
+      // Fallback if reading text fails
     }
     throw new Error(errorData);
   }
   if (response.status === 204) return null;
   return response.json();
 };
+
 
 export const api = {
   // ── Auth ──────────────────────────────────────────────────────
