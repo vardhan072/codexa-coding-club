@@ -30,11 +30,13 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://sitam-coding-club-fb39a.web.app",
         "https://sitam-coding-club-fb39a.firebaseapp.com",
+        "https://sitamcodexa.org",
+        "https://www.sitamcodexa.org",
     ]
 
 
     # Firebase Settings
-    FIREBASE_PROJECT_ID: str = "sitam-coding-club"
+    FIREBASE_PROJECT_ID: str = "sitam-coding-club-fb39a"
     FIREBASE_CREDENTIALS_PATH: Optional[str] = "firebase-credentials.json"
 
     # SMTP Email
@@ -46,7 +48,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
 
     # Frontend base URL (used in password-reset links)
-    FRONTEND_URL: str = "http://localhost:5174"
+    FRONTEND_URL: str = "https://sitamcodexa.org"
 
     model_config = SettingsConfigDict(
         env_file=(".env", "backend/.env"),

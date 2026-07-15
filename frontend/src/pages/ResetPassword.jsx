@@ -6,7 +6,7 @@ import PasswordStrength from '../components/PasswordStrength';
 export default function ResetPassword() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const API_BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+  const API_BASE  = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1');
 
   // Where to go back after success — passed from ForgotPassword page
   const backTo = location.state?.from || '/login';
