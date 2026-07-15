@@ -1,24 +1,7 @@
 {
-  "hosting": {
-    "public": "frontend/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/v1/**",
-        "function": "api"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
   "functions": {
     "source": "backend",
     "runtime": "python"
   }
 }
+
