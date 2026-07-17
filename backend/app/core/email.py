@@ -22,10 +22,39 @@ from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
 from typing import Optional
 
+import urllib.request
+import urllib.error
+import json
 from app.core.config import settings
 
 
-# ── Core sender ───────────────────────────────────────────────────
+
+def _send_resend(to_email: str, subject: str, html_body: str, text_body: str) -> None:
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    from_name = settings.SMTP_FROM_NAME or "CODEXA Coding Club"
+    payload = {
+        "from": f"{from_name} <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body
+    }
+    
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST"
+    )
+    
+    with urllib.request.urlopen(req, timeout=15) as response:
+        res_body = response.read().decode("utf-8")
+        print(f"[RESEND] Successfully sent email to {to_email}: {res_body}")
+
 
 def _send(
     to_email: str,
@@ -34,9 +63,17 @@ def _send(
     text_body: str,
 ) -> None:
     """
-    Send a multipart/alternative email with proper anti-spam headers.
-    Errors are logged but never raised — mail failure must not crash the API.
+    Send email. Uses Resend API if settings.RESEND_API_KEY is configured.
+    Otherwise falls back to standard SMTP.
     """
+    if settings.RESEND_API_KEY:
+        try:
+            _send_resend(to_email, subject, html_body, text_body)
+            print(f"[EMAIL] Delivered via Resend API '{subject}' -> {to_email}")
+            return
+        except Exception as exc:
+            print(f"[EMAIL] Resend delivery failed: {exc}. Falling back to SMTP...")
+
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         print(f"[EMAIL] SMTP not configured — skipping '{subject}' to {to_email}")
         return
@@ -44,6 +81,7 @@ def _send(
     from_addr   = settings.SMTP_FROM_EMAIL
     from_name   = settings.SMTP_FROM_NAME
     sender_domain = from_addr.split("@")[-1] if "@" in from_addr else "mail.local"
+
 
     msg = MIMEMultipart("alternative")
 
@@ -61,11 +99,18 @@ def _send(
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as server:
-            server.ehlo(sender_domain)
-            server.starttls(context=context)
-            server.ehlo(sender_domain)        # second ehlo after STARTTLS
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        if settings.SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20, context=context) as server:
+                server.ehlo(sender_domain)
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as server:
+                server.ehlo(sender_domain)
+                server.starttls(context=context)
+                server.ehlo(sender_domain)        # second ehlo after STARTTLS
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
         print(f"[EMAIL] Delivered '{subject}' -> {to_email}")
     except Exception as exc:
         print(f"[EMAIL] Failed to deliver '{subject}' -> {to_email}: {exc}")
@@ -284,55 +329,6 @@ def send_application_rejected(to_email: str, name: str) -> None:
         text_body=plain,
     )
 
-
-def send_password_reset_otp(
-    to_email: str, name: str, otp: str, frontend_url: str
-) -> None:
-    """OTP email for password reset. Expires in 15 minutes."""
-    reset_url = f"{frontend_url}/reset-password"
-
-    html_content = f"""\
-<h2 style="color:#111827;font-size:18px;margin:0 0 12px;font-family:Arial,sans-serif;">
-  Password Reset Request
-</h2>
-<p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px;">
-  Hi {name}, we received a request to reset the password for your CODEXA account.
-  Use the one-time code below. It is valid for <strong>15 minutes</strong>.
-</p>
-<div style="background:#f5f3ff;border:2px solid #4f46e5;border-radius:12px;
-            padding:24px;text-align:center;margin:24px 0;">
-  <p style="margin:0 0 6px;color:#6b7280;font-size:11px;
-            text-transform:uppercase;letter-spacing:2px;">
-    Your one-time password (OTP)
-  </p>
-  <p style="margin:0;color:#4f46e5;font-size:36px;font-weight:700;
-            letter-spacing:10px;font-family:'Courier New',monospace;">
-    {otp}
-  </p>
-</div>
-{_btn("Go to Reset Password Page", reset_url)}
-{_divider()}
-<p style="color:#6b7280;font-size:12px;margin:0;">
-  If you did not request a password reset, please ignore this email.
-  Your account remains secure.
-</p>"""
-
-    plain = (
-        f"Hi {name},\n\n"
-        f"Your CODEXA account password reset code is:\n\n"
-        f"  {otp}\n\n"
-        f"This code expires in 15 minutes.\n"
-        f"Enter it at: {reset_url}\n\n"
-        f"If you did not request this, ignore this email.\n\n"
-        f"CODEXA Coding Club"
-    )
-
-    _send(
-        to_email=to_email,
-        subject="CODEXA - Password Reset Code",
-        html_body=_base(html_content),
-        text_body=plain,
-    )
 
 
 def send_event_registration_confirmation(
@@ -578,14 +574,14 @@ def send_password_reset_otp(
 <div style="background:#f5f3ff;border:1px solid #c7d2fe;border-radius:12px;
             padding:28px;margin:24px 0;text-align:center;">
   <p style="margin:0 0 8px;color:#4f46e5;font-size:12px;font-weight:700;
-             letter-spacing:0.1em;text-transform:uppercase;">
+             letter-spacing:1px;text-transform:uppercase;font-family:Arial,sans-serif;">
     Your OTP Code
   </p>
-  <div style="font-size:40px;font-weight:900;letter-spacing:12px;color:#1e1b4b;
-               font-family:monospace;margin:8px 0;">
+  <p style="margin:8px 0;font-size:36px;font-weight:bold;color:#4f46e5;
+             font-family:'Courier New',Courier,monospace;letter-spacing:8px;">
     {otp}
-  </div>
-  <p style="margin:12px 0 0;color:#6b7280;font-size:12px;">
+  </p>
+  <p style="margin:12px 0 0;color:#6b7280;font-size:12px;font-family:Arial,sans-serif;">
     Expires in 15 minutes
   </p>
 </div>

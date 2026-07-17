@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
+
+
     # CORS
     BACKEND_CORS_ORIGINS: Annotated[
         List[str], BeforeValidator(parse_cors)
@@ -32,7 +34,12 @@ class Settings(BaseSettings):
         "https://sitam-coding-club-fb39a.firebaseapp.com",
         "https://sitamcodexa.org",
         "https://www.sitamcodexa.org",
+        "https://codexa-frontend-git-main-sitam-codexa.vercel.app",
+        "https://codexa-frontend.vercel.app",
+        "https://codexa-coding-club.vercel.app",
+        "https://codexa-frontend-coral.vercel.app",
     ]
+
 
 
     # Firebase Settings
@@ -48,6 +55,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_NAME: str = "CODEXA Coding Club"
     SMTP_FROM_EMAIL: str = ""
+    RESEND_API_KEY: Optional[str] = None
+
 
     # Frontend base URL (used in password-reset links)
     FRONTEND_URL: str = "https://sitamcodexa.org"
