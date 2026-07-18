@@ -371,6 +371,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteRequest = async (req) => {
+    if (!window.confirm(`Are you sure you want to permanently delete registration request from "${req.name}"? If they were approved, this will also delete their profile and user account.`)) {
+      return;
+    }
+    try {
+      await api.joinRequests.delete(req.id);
+      showToast(`Registration request from "${req.name}" deleted successfully.`);
+      fetchRequests();
+    } catch (err) {
+      alert(err.message || 'Failed to delete registration request.');
+    }
+  };
+
+
   const handleApproveAll = async () => {
     const pendingCount = requests.filter((r) => r.status === 'pending').length;
     if (pendingCount === 0) return;
@@ -1168,20 +1182,41 @@ export default function AdminDashboard() {
                             <Check size={13} />
                             Approve
                           </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRequest(req)}
+                            className="h-9 w-9 rounded-xl border border-brand-red/20 text-brand-red flex items-center justify-center hover:bg-brand-red/[0.06] transition-all"
+                            title="Delete registration request"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       ) : (
-                        <p
-                          className={`text-[10px] font-semibold ${
-                            isApproved
-                              ? 'text-brand-emerald'
-                              : 'text-brand-red'
-                          }`}
-                        >
-                          {isApproved
-                            ? 'Account created'
-                            : 'Application closed'}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <p
+                            className={`text-[10px] font-semibold ${
+                              isApproved
+                                ? 'text-brand-emerald'
+                                : 'text-brand-red'
+                            }`}
+                          >
+                            {isApproved
+                              ? 'Account created'
+                              : 'Application closed'}
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRequest(req)}
+                            className="h-9 w-9 rounded-xl border border-brand-red/20 text-brand-red flex items-center justify-center hover:bg-brand-red/[0.06] transition-all"
+                            title="Delete registration request"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       )}
+
                     </div>
                   </div>
                 </div>
@@ -2924,20 +2959,9 @@ export default function AdminDashboard() {
                                   </div>
                                 </div>
                               )}
-
-                              {/* Danger Zone / Delete Button */}
-                              <div className="mt-5 pt-4 border-t border-bg-border">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMember(m)}
-                                  className="w-full py-2 px-3 rounded-xl border border-brand-red/20 bg-brand-red/[0.045] text-brand-red hover:bg-brand-red/10 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                                >
-                                  <Trash2 size={13} />
-                                  Delete Member
-                                </button>
-                              </div>
                             </div>
                           </div>
+
 
                           {/* Points history */}
                           <div className="flex-1 min-w-0">
