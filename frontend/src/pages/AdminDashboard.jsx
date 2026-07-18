@@ -262,7 +262,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteMember = async (member) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${member.name}"? This will delete their profile and user account.`)) {
+      return;
+    }
+    try {
+      await api.members.delete(member.id);
+      showToast(`Member "${member.name}" deleted successfully.`);
+      fetchMembers();
+    } catch (err) {
+      alert(err.message || 'Failed to delete member.');
+    }
+  };
+
+
   const fetchAnnouncements = async () => {
+
     setFetchingAnn(true);
     try {
       const data = await api.announcements.getAllAdmin();
@@ -2909,6 +2924,18 @@ export default function AdminDashboard() {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Danger Zone / Delete Button */}
+                              <div className="mt-5 pt-4 border-t border-bg-border">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteMember(m)}
+                                  className="w-full py-2 px-3 rounded-xl border border-brand-red/20 bg-brand-red/[0.045] text-brand-red hover:bg-brand-red/10 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                                >
+                                  <Trash2 size={13} />
+                                  Delete Member
+                                </button>
+                              </div>
                             </div>
                           </div>
 
